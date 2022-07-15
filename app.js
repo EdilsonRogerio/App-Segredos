@@ -35,7 +35,7 @@ app.get("/registro", function (req, res) {
 
 app.post("/registro", function (req, res) {
     const novoUsuario = new Usuario({
-        email: req.body.nomeusuario,
+        email: req.body.nomeUsuario,
         password: req.body.password
     });
 
@@ -46,7 +46,25 @@ app.post("/registro", function (req, res) {
             res.render("segredo");
         }
     });
-})
+});
+
+app.post("/login", function (req, res) {
+    const nomeusuario = req.body.nomeUsuario;
+    const password = req.body.password;
+
+    Usuario.findOne({email: nomeusuario}, function (err, usuarioEncontrado) {
+        if (err) {
+            console.log(err);
+        } else {
+            if (usuarioEncontrado) {
+                if (usuarioEncontrado.password === password) {
+                    res.render("segredo");
+                }
+            }
+        }
+    });
+
+});
 
 app.listen(3000, function (req, res) {
     console.log("Servidor inicou na porta 3000!");
