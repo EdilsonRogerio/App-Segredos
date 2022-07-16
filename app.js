@@ -4,8 +4,10 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const saltRounds = 10;
+const session  = require("express-session");
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
+const passportLocalMongoose = require("passport-local-mongoose");
 
 const app = express();
 
@@ -15,6 +17,15 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 
+app.use(session({
+    secret: "Nosso pequeno segredo.",
+    resave: false,
+    saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 mongoose.connect("mongodb://localhost:27017/usarioDB");
 
 const esquemaUsuario = new mongoose.Schema({
@@ -22,7 +33,14 @@ const esquemaUsuario = new mongoose.Schema({
     password: String
 });
 
+esquemaUsuario.plugin(passportLocalMongoose);
+
 const Usuario = new mongoose.model("Usuario", esquemaUsuario);
+
+passport.use(Usuario.createStrategy());
+passport.use(new LocalStrategy(Usuario.authenticate()));
+passport.serializeUser(Usuario.serializeUser());
+passport.deserializeUser(Usuario.deserializeUser());
 
 app.get("/", function (req, res) {
     res.render("home");
@@ -35,43 +53,55 @@ app.get("/registro", function (req, res) {
     res.render("registro");
 });
 
-app.post("/registro", function (req, res) {
-    
-    bcrypt.hash(req.body.password, saltRounds, function (err, hash) {
-        const novoUsuario = new Usuario({
-            email: req.body.nomeUsuario,
-            password: hash
-        });
-    
-        novoUsuario.save(function (err) {
-            if (err) {
-                console.log(err);
-            } else {
-                res.render("segredo");
-            }
-        });
-    });
-    
-    
+app.get("/segredo", function (req, res) {
+    if (req.isAuthenticated()) {
+        res.render("segredo");
+    } else {
+        res.redirect("/login");
+    }
+});
+
+app.get("/logout", function (req, res) {
+    req.logout(function (err) {
+        if (err) {
+            console.log(err);
+        }
+        res.redirect("/");
+    })
+});
+
+app.post("/registro", function(req,res){
+
+    Usuario.register({username: req.body.username}, req.body.password,function(err, usuario){
+  
+      if(err){  
+        console.log("Erro no registro.", err);
+        res.redirect("/registro");
+      }else{
+        passport.authenticate("local")(req, res, function(){
+        console.log(usuario, 101);
+          res.redirect("/segredo");
+      });
+  }});
+  
 });
 
 app.post("/login", function (req, res) {
-    const nomeusuario = req.body.nomeUsuario;
-    const password = req.body.password;
+    
+    const usuario = new Usuario({
+        username: req.body.username,
+        password: req.body.password
+    });
 
-    Usuario.findOne({email: nomeusuario}, function (err, usuarioEncontrado) {
+    req.login(usuario, function (err) {
         if (err) {
             console.log(err);
         } else {
-            if (usuarioEncontrado) {
-                bcrypt.compare(password, usuarioEncontrado.password, function (err, result) {
-                    if (result === true) {
-                        res.render("segredo")
-                    }
-                });
-            }
+            passport.authenticate("local")(req, res, function () {
+                res.redirect("/segredo");
+            })
         }
-    });
+    })
 
 });
 
