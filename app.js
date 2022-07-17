@@ -9,6 +9,7 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth20");
+const FacebookStrategy = require("passport-facebook");
 const findOrCreate = require("mongoose-findorcreate");
 
 const app = express();
@@ -73,6 +74,19 @@ passport.use(new GoogleStrategy({
   }
 ));
 
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_CLIENT_ID,
+    clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+    callbackURL: process.env.FACEBOOK_CALLBACK_URL
+  },
+
+  function(accessToken, refreshToken, profile, cb) {
+    Usuario.findOrCreate({ facebookId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
+
 app.get("/", function (req, res) {
     res.render("home");
 });
@@ -88,6 +102,20 @@ app.get("/auth/google/segredo",
     
     res.redirect('/segredo');
 });
+
+app.get('/auth/facebook',
+    passport.authenticate('facebook'));
+
+
+
+app.get('/auth/facebook/segredo',
+
+    passport.authenticate('facebook', { failureRedirect: '/login' }),
+
+    function(req, res) {
+        res.redirect('/segredo');
+    }
+);
 
 app.get("/login", function (req, res) {
     res.render("login");
