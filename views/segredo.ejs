@@ -4,11 +4,15 @@
   <div class="container">
     <i class="fas fa-key fa-6x"></i>
     <h1 class="display-3">Voce descobriu o meu segredo!</h1>
-    <p class="secret-text">Thor é o meu super heroi favorito</p>
+
+    <% segredoUsuarios.forEach(function (usuario) { %>
+      <p class="secret-text"> <%= usuario.segredo %> </p>
+    <% }); %>
+    
     <hr>
     
     <a class="btn btn-light btn-lg" href="/logout" role="button">Log Out</a>
-    <a class="btn btn-dark btn-lg" href="/submit" role="button">Enviar segredo</a>
+    <a class="btn btn-dark btn-lg" href="/enviar" role="button">Enviar segredo</a>
   </div>
 </div>
 

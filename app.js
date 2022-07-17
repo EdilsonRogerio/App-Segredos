@@ -34,7 +34,8 @@ mongoose.connect("mongodb://localhost:27017/usarioDB");
 const esquemaUsuario = new mongoose.Schema({
     email: String,
     password: String,
-    googleId: String
+    googleId: String,
+    segredo: String
 });
 
 esquemaUsuario.plugin(passportLocalMongoose);
@@ -126,11 +127,41 @@ app.get("/registro", function (req, res) {
 });
 
 app.get("/segredo", function (req, res) {
+    Usuario.find({"segredo": {$ne: null}}, function (err, usuarioEncotrado) {
+        if (err) {
+            console.log(err);
+        } else {
+            if (usuarioEncotrado) {
+                res.render("segredo", { segredoUsuarios: usuarioEncotrado });
+            }
+        }
+    });
+});
+
+app.get("/enviar", function (req, res) {
     if (req.isAuthenticated()) {
-        res.render("segredo");
+        res.render("enviar");
     } else {
         res.redirect("/login");
     }
+});
+
+app.post("/enviar", function (req, res) {
+    const segredoEnviado = req.body.segredo;
+
+    Usuario.findById(req.user.id, function (err, usuarioEncotrado) {
+        if (err) {
+            console.log(err);
+        } else {
+            if (usuarioEncotrado) {
+                usuarioEncotrado.segredo = segredoEnviado;
+                usuarioEncotrado.save(function () {
+                    res.redirect("/segredo");
+                });
+            }
+        }    
+    });
+
 });
 
 app.get("/logout", function (req, res) {
@@ -139,7 +170,7 @@ app.get("/logout", function (req, res) {
             console.log(err);
         }
         res.redirect("/");
-    })
+    });
 });
 
 app.post("/registro", function(req,res){
